@@ -151,6 +151,13 @@ app.put('/api/orders/:id', async (req, res) => {
     const updatedOrder = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
     res.json(updatedOrder);
 });
-
+// --- TEST ROUTE ---
+app.get('/', (req, res) => {
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    const dbState = mongoose.connection.readyState; 
+    const status = dbState === 1 ? '🟢 Connected to MongoDB' : '🔴 Database Disconnected';
+    
+    res.send(`🚀 Backend is LIVE! <br> Database Status: ${status}`);
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
