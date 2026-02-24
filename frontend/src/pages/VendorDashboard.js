@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+
 const API_URL = process.env.REACT_APP_API_URL || 'https://computer-hardware-service-webapplication-production.up.railway.app';
 
 const VendorDashboard = ({ user }) => {
@@ -10,9 +11,9 @@ const VendorDashboard = ({ user }) => {
   const fetchData = async () => {
     if (!user || !user._id) return; 
     try {
-    const orderRes = await axios.get(`${API_URL}/api/orders/vendor/${user._id}`);
+      const orderRes = await axios.get(`${API_URL}/api/orders/vendor/${user._id}`);
       setOrders(orderRes.data.reverse());
-    const userRes = await axios.get(`${API_URL}/api/vendor/${user._id}`);
+      const userRes = await axios.get(`${API_URL}/api/vendor/${user._id}`);
       setServices(userRes.data.services);
     } catch (err) { console.error(err); }
   };
@@ -21,6 +22,7 @@ const VendorDashboard = ({ user }) => {
     fetchData();
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const addService = async () => {
@@ -76,7 +78,7 @@ const VendorDashboard = ({ user }) => {
                               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500 font-medium">
                                   <span className="flex items-center gap-1">👤 <span className="text-gray-700">{order.customerId?.name || 'Guest'}</span></span>
                                   {order.customerId?.location && (
-                                      <a href={`https://www.google.com/maps?q=${order.customerId.location.lat},${order.customerId.location.lng}`} target="_blank" rel="noreferrer"
+                                      <a href={`https://www.google.com/maps?q=$${order.customerId.location.lat},${order.customerId.location.lng}`} target="_blank" rel="noreferrer"
                                          className="flex items-center gap-1 text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors">
                                           📍 View Map
                                       </a>
