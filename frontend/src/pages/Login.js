@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const Login = ({ onLogin }) => {
   const [isLoginMode, setIsLoginMode] = useState(true); 
-  const [step, setStep] = useState(1); 
   const [loading, setLoading] = useState(false);
-  
   const [formData, setFormData] = useState({ 
-    email: '', password: '', otp: '', role: 'customer', name: '', shopName: '', lat: null, lng: null 
+    email: '', password: '', role: 'customer', name: '', shopName: '', lat: null, lng: null 
   });
   const [locationStatus, setLocationStatus] = useState(null);
 
-  // --- 1. HANDLE LOGIN (Email + Password) ---
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-        const res = await axios.post('http://localhost:5000/api/auth/login', { 
+        const res = await axios.post(`${API_URL}/api/auth/login`, { 
             email: formData.email, 
             password: formData.password 
         });
@@ -26,34 +25,18 @@ const Login = ({ onLogin }) => {
     } finally { setLoading(false); }
   };
 
-  // --- 2. HANDLE SIGNUP: Step A (Send Email OTP) ---
-  const handleSignupRequest = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (!formData.email.includes('@')) return alert("Enter valid email");
-    
-    // Vendor Location Validation
     if (formData.role === 'vendor' && !formData.lat) return alert("⚠️ Please detect shop location!");
 
     setLoading(true);
     try {
-        await axios.post('http://localhost:5000/api/auth/send-otp', { email: formData.email });
-        alert(`📧 OTP sent to ${formData.email}`);
-        setStep(2); 
-    } catch (err) {
-        alert(err.response?.data?.error || "Failed to send OTP");
-    } finally { setLoading(false); }
-  };
-
-  // --- 3. HANDLE SIGNUP: Step B (Verify OTP & Register) ---
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-        const res = await axios.post('http://localhost:5000/api/auth/register', formData);
-        alert("✅ Account Created! Logged in.");
+        const res = await axios.post(`${API_URL}/api/auth/register`, formData);
+        alert("✅ Account Created Successfully!");
         onLogin(res.data.user);
     } catch (err) {
-        alert("❌ Invalid OTP or Error");
+        alert(err.response?.data?.error || "Registration Failed");
     } finally { setLoading(false); }
   };
 
@@ -69,87 +52,96 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex justify-center items-center h-[90vh] bg-gray-50 font-sans">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-600 font-sans p-4">
+      
+      {/* Decorative blurred circles behind the card */}
+      <div className="absolute top-20 left-20 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob"></div>
+      <div className="absolute bottom-20 right-20 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob animation-delay-2000"></div>
+
+      <div className="relative bg-white/95 backdrop-blur-xl p-10 rounded-[2rem] shadow-2xl w-full max-w-lg border border-white/20">
         
-        <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
-            {isLoginMode ? 'Login' : (step === 1 ? 'Create Account' : 'Verify Email')}
-        </h2>
+        <div className="text-center mb-8">
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+                HardwareHub
+            </h1>
+            <p className="text-gray-500 font-medium">
+                {isLoginMode ? 'Welcome back! Please login to your account.' : 'Join the smartest hardware network.'}
+            </p>
+        </div>
 
-        {/* --- LOGIN FORM --- */}
-        {isLoginMode && (
-            <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={isLoginMode ? handleLogin : handleRegister} className="space-y-5">
+            
+            {!isLoginMode && (
                 <input 
-                    type="email"
-                    placeholder="Email Address" 
-                    className="w-full p-3 border rounded-lg" 
-                    onChange={e => setFormData({...formData, email: e.target.value})} required 
+                    placeholder="Full Name" 
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all" 
+                    onChange={e => setFormData({...formData, name: e.target.value})} required 
                 />
-                <input 
-                    placeholder="Password" 
-                    type="password" 
-                    className="w-full p-3 border rounded-lg" 
-                    onChange={e => setFormData({...formData, password: e.target.value})} required 
-                />
-                <button disabled={loading} className="w-full bg-black text-white p-3 rounded-lg font-bold hover:bg-gray-800 transition">
-                    {loading ? 'Logging in...' : 'Login'}
+            )}
+            
+            <input 
+                type="email" 
+                placeholder="Email Address" 
+                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all" 
+                onChange={e => setFormData({...formData, email: e.target.value})} required 
+            />
+
+            <input 
+                placeholder="Password" 
+                type="password" 
+                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all" 
+                onChange={e => setFormData({...formData, password: e.target.value})} required 
+            />
+
+            {!isLoginMode && (
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 ml-1">Account Type</label>
+                    <select 
+                        className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all cursor-pointer" 
+                        onChange={e => setFormData({...formData, role: e.target.value})}
+                    >
+                        <option value="customer">Customer (Find Services)</option>
+                        <option value="vendor">Service Center (Provide Services)</option>
+                    </select>
+                </div>
+            )}
+
+            {/* VENDOR ONLY FIELDS */}
+            {!isLoginMode && formData.role === 'vendor' && (
+                <div className="bg-indigo-50/50 p-5 rounded-2xl space-y-4 border border-indigo-100">
+                    <input 
+                        placeholder="Shop / Center Name" 
+                        className="w-full p-4 bg-white border border-indigo-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" 
+                        onChange={e => setFormData({...formData, shopName: e.target.value})} required 
+                    />
+                    <button 
+                        type="button" 
+                        onClick={detectLocation} 
+                        className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm
+                        ${locationStatus === 'success' ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`}
+                    >
+                        {locationStatus === 'success' ? '✅ Location Captured' : '📍 Detect Shop Location (Required)'}
+                    </button>
+                </div>
+            )}
+            
+            <button 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-xl font-bold text-lg hover:shadow-lg hover:opacity-90 transition-all transform active:scale-[0.98] mt-4"
+            >
+                {loading ? 'Processing...' : (isLoginMode ? 'Sign In' : 'Create Account')}
+            </button>
+            
+            <div className="text-center mt-6">
+                <button 
+                    type="button"
+                    className="text-sm font-semibold text-indigo-600 hover:text-purple-600 hover:underline transition-all" 
+                    onClick={() => setIsLoginMode(!isLoginMode)}
+                >
+                    {isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                 </button>
-                <p className="text-center text-sm text-indigo-600 cursor-pointer hover:underline" onClick={() => setIsLoginMode(false)}>
-                    New User? Create Account
-                </p>
-            </form>
-        )}
-
-        {/* --- SIGN UP FORM (Step 1) --- */}
-        {!isLoginMode && step === 1 && (
-            <form onSubmit={handleSignupRequest} className="space-y-4">
-                <input placeholder="Full Name" className="w-full p-3 border rounded-lg" onChange={e => setFormData({...formData, name: e.target.value})} required />
-                
-                <input 
-                    placeholder="Set a Password" 
-                    type="password" 
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" 
-                    onChange={e => setFormData({...formData, password: e.target.value})} required 
-                />
-
-                <select className="w-full p-3 border rounded-lg bg-white" onChange={e => setFormData({...formData, role: e.target.value})}>
-                    <option value="customer">I am a Customer</option>
-                    <option value="vendor">I am a Service Center</option>
-                </select>
-
-                {formData.role === 'vendor' && (
-                    <div className="bg-indigo-50 p-4 rounded-lg space-y-3">
-                        <input placeholder="Shop Name" className="w-full p-2 border rounded" onChange={e => setFormData({...formData, shopName: e.target.value})} required />
-                        <button type="button" onClick={detectLocation} className={`w-full py-2 rounded font-bold text-sm ${locationStatus === 'success' ? 'bg-green-100 text-green-700' : 'bg-white border'}`}>
-                            {locationStatus === 'success' ? '✅ Location Captured' : '📍 Detect Shop Location'}
-                        </button>
-                    </div>
-                )}
-
-                <input type="email" placeholder="Email Address" className="w-full p-3 border rounded-lg" onChange={e => setFormData({...formData, email: e.target.value})} required />
-                
-                <button disabled={loading} className="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 transition">
-                    {loading ? 'Processing...' : 'Verify Email (Get OTP)'}
-                </button>
-                <p className="text-center text-sm text-gray-500 cursor-pointer hover:underline" onClick={() => setIsLoginMode(true)}>
-                    Already have an account? Login
-                </p>
-            </form>
-        )}
-
-        {/* --- SIGN UP FORM (Step 2: OTP) --- */}
-        {!isLoginMode && step === 2 && (
-            <form onSubmit={handleRegister} className="space-y-4">
-                <p className="text-center text-gray-500 text-sm">Enter the code sent to {formData.email}</p>
-                <input placeholder="XXXXXX" className="w-full p-3 border rounded-lg text-center text-2xl tracking-widest" onChange={e => setFormData({...formData, otp: e.target.value})} required />
-                <button disabled={loading} className="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 transition">
-                    {loading ? 'Verifying...' : 'Verify & Create Account'}
-                </button>
-                <p className="text-center text-xs text-red-400 cursor-pointer hover:underline" onClick={() => setStep(1)}>
-                    Incorrect Details? Go Back
-                </p>
-            </form>
-        )}
+            </div>
+        </form>
       </div>
     </div>
   );
