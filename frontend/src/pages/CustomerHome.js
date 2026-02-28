@@ -4,7 +4,9 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// 🛑 Variable declarations MUST come after all imports
+// IMPORT YOUR NEW PAGE
+import VendorStore from './VendorStore'; 
+
 const API_URL = process.env.REACT_APP_API_URL || 'https://computer-hardware-service-webapplication-production.up.railway.app';
 
 const userIcon = new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
@@ -12,7 +14,7 @@ const vendorIcon = new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/poin
 
 const CustomerHome = ({ user }) => {
   const [vendors, setVendors] = useState([]);
-  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedVendor, setSelectedVendor] = useState(null); // Used to track which store is open
   const [userLoc, setUserLoc] = useState([17.3850, 78.4867]); 
 
   useEffect(() => {
@@ -28,14 +30,18 @@ const CustomerHome = ({ user }) => {
     );
   }, []);
 
-  const handleBooking = async (serviceName, price) => {
-    try {
-    await axios.post(`${API_URL}/api/orders`, { customerId: user._id, vendorId: selectedVendor._id, serviceName, amount: price });
-      alert("🎉 Order Placed Successfully!");
-      setSelectedVendor(null);
-    } catch (err) { alert("Booking failed"); }
-  };
+  // 🛑 PAGE ROUTING LOGIC: If a vendor is selected, show the Store Page instead of the Map!
+  if (selectedVendor) {
+      return (
+          <VendorStore 
+              vendor={selectedVendor} 
+              user={user} 
+              onBack={() => setSelectedVendor(null)} // This function allows them to return to the map
+          />
+      );
+  }
 
+  // 👇 OTHERWISE, RENDER THE NORMAL MAP VIEW 👇
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8 font-sans">
       
@@ -60,8 +66,16 @@ const CustomerHome = ({ user }) => {
             <Marker position={userLoc} icon={userIcon}><Popup>You are here</Popup></Marker>
             <Circle center={userLoc} radius={20000} pathOptions={{ color: '#4f46e5', fillColor: '#4f46e5', fillOpacity: 0.05, weight: 2 }} />
             {vendors.map(v => (
-              <Marker key={v._id} position={[v.location.lat, v.location.lng]} icon={vendorIcon} eventHandlers={{ click: () => setSelectedVendor(v) }}>
-                <Popup><b className="text-indigo-600">{v.shopName}</b><br/>{v.distance} km away</Popup>
+              <Marker key={v._id} position={[v.location.lat, v.location.lng]} icon={vendorIcon}>
+                <Popup>
+                    <b className="text-indigo-600 block mb-1">{v.shopName}</b>
+                    <button 
+                        onClick={() => setSelectedVendor(v)} 
+                        className="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-indigo-700 w-full mt-1"
+                    >
+                        Visit Store Page →
+                    </button>
+                </Popup>
               </Marker>
             ))}
           </MapContainer>
@@ -84,48 +98,22 @@ const CustomerHome = ({ user }) => {
                 <div 
                   key={vendor._id} 
                   onClick={() => setSelectedVendor(vendor)} 
-                  className={`bg-white p-5 rounded-2xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 shadow-sm hover:shadow-md border
-                  ${selectedVendor?._id === vendor._id ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-gray-100'}`}
+                  className="bg-white p-5 rounded-2xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:border-indigo-500 hover:ring-4 hover:ring-indigo-50 shadow-sm border border-gray-100"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-gray-900 text-lg leading-tight">{vendor.shopName}</h3>
+                    <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-indigo-700">{vendor.shopName}</h3>
                     <span className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold">
                         {vendor.distance} km
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-3">
                       <span className="flex items-center justify-center bg-gray-100 text-gray-600 w-6 h-6 rounded-full text-xs font-bold">{vendor.services.length}</span>
-                      <p className="text-sm text-gray-500 font-medium">Services Available</p>
+                      <p className="text-sm text-gray-500 font-medium">Services Available <span className="text-indigo-500 ml-1">→</span></p>
                   </div>
                 </div>
               ))}
           </div>
         </div>
-
-        {/* 🛒 BOOKING MODAL */}
-        {selectedVendor && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-in fade-in duration-200">
-            <div className="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl transform transition-all">
-              <div className="flex justify-between items-center mb-6">
-                  <div>
-                      <h2 className="text-2xl font-black text-gray-900">{selectedVendor.shopName}</h2>
-                      <p className="text-indigo-600 font-semibold text-sm mt-1">Select a service to book</p>
-                  </div>
-                  <button onClick={() => setSelectedVendor(null)} className="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors">✕</button>
-              </div>
-              
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-                  {selectedVendor.services.length === 0 ? <p className="text-center text-gray-400 italic py-6">No services listed yet.</p> :
-                  selectedVendor.services.map((s, i) => (
-                      <div key={i} onClick={() => handleBooking(s.name, s.price)} className="group flex justify-between items-center p-4 border border-gray-100 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 cursor-pointer transition-all">
-                          <span className="font-semibold text-gray-700 group-hover:text-indigo-900">{s.name}</span>
-                          <span className="font-black text-indigo-600 text-lg">₹{s.price}</span>
-                      </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
