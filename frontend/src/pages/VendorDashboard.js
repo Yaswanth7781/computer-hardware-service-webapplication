@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+// IMPORT MAP COMPONENTS
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'; 
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://computer-hardware-service-webapplication-production.up.railway.app';
+
+// CUSTOMER MAP MARKER
+const customerIcon = new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
 
 const VendorDashboard = ({ user }) => {
   const [orders, setOrders] = useState([]);
   const [services, setServices] = useState(user.services || []);
   const [newService, setNewService] = useState({ name: '', price: '' });
+  
+  // STATE FOR TRACKING CUSTOMER MAP
+  const [trackingCustomer, setTrackingCustomer] = useState(null);
 
   const fetchData = async () => {
     if (!user || !user._id) return; 
@@ -58,7 +68,7 @@ const VendorDashboard = ({ user }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* LEFT: ORDER MANAGEMENT (Takes up 2 columns on large screens) */}
+          {/* LEFT: ORDER MANAGEMENT */}
           <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">📦</div>
@@ -77,11 +87,14 @@ const VendorDashboard = ({ user }) => {
                               <p className="font-black text-xl text-gray-900">{order.serviceName}</p>
                               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500 font-medium">
                                   <span className="flex items-center gap-1">👤 <span className="text-gray-700">{order.customerId?.name || 'Guest'}</span></span>
+                                  
+                                  {/* 👇 CHANGED FROM <a> TAG TO BUTTON 👇 */}
                                   {order.customerId?.location && (
-                                      <a href={`https://www.google.com/maps?q=$${order.customerId.location.lat},${order.customerId.location.lng}`} target="_blank" rel="noreferrer"
-                                         className="flex items-center gap-1 text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors">
-                                          📍 View Map
-                                      </a>
+                                      <button 
+                                         onClick={() => setTrackingCustomer(order.customerId)}
+                                         className="flex items-center gap-1 text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors font-bold cursor-pointer border border-indigo-100">
+                                          📍 Track Location
+                                      </button>
                                   )}
                               </div>
                           </div>
@@ -122,7 +135,6 @@ const VendorDashboard = ({ user }) => {
               </div>
               
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                  {/* Add Service Form */}
                   <div className="bg-indigo-50/50 p-5 rounded-2xl mb-8 border border-indigo-100">
                       <p className="text-sm font-bold text-indigo-800 mb-3">Add New Service</p>
                       <div className="space-y-3">
@@ -134,7 +146,6 @@ const VendorDashboard = ({ user }) => {
                       </div>
                   </div>
 
-                  {/* Service List */}
                   <div className="space-y-3">
                       {services.length === 0 ? (
                           <p className="text-center text-gray-400 font-medium py-6">Your catalog is empty.</p>
@@ -148,8 +159,48 @@ const VendorDashboard = ({ user }) => {
               </div>
           </div>
         </div>
+
+        {/* 🗺️ CUSTOMER TRACKING MAP MODAL */}
+        {trackingCustomer && trackingCustomer.location && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-in fade-in duration-200">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] w-full max-w-3xl shadow-2xl transform transition-all relative overflow-hidden flex flex-col h-[70vh]">
+              
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                  <div>
+                      <h2 className="text-2xl font-black text-gray-900">Customer Location</h2>
+                      <p className="text-indigo-600 font-semibold text-sm mt-1">
+                          Tracking {trackingCustomer.name || 'Customer'}
+                      </p>
+                  </div>
+                  <button onClick={() => setTrackingCustomer(null)} className="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-10 h-10 flex items-center justify-center font-bold transition-colors">✕</button>
+              </div>
+              
+              {/* Leaflet Map Box */}
+              <div className="flex-1 rounded-2xl overflow-hidden border-2 border-indigo-50 shadow-inner relative z-10">
+                  <MapContainer 
+                      center={[trackingCustomer.location.lat, trackingCustomer.location.lng]} 
+                      zoom={14} 
+                      style={{ height: "100%", width: "100%" }}
+                  >
+                      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                      <Marker 
+                          position={[trackingCustomer.location.lat, trackingCustomer.location.lng]} 
+                          icon={customerIcon}
+                      >
+                          <Popup>
+                              <b className="text-indigo-600">{trackingCustomer.name || 'Customer'}</b><br/>
+                              Service Request Location
+                          </Popup>
+                      </Marker>
+                  </MapContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 };
+
 export default VendorDashboard;
